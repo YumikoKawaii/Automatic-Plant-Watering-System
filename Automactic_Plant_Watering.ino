@@ -11,7 +11,7 @@ int const delayUnit = 500; //ms
 int timeCoef = 5;
 int moisureLimit = 65;
 int moisure ; //random variable 
-int humidity;
+int percent;
 int wL;
 int waterLevel;
 char t;
@@ -21,27 +21,30 @@ void setup() {
   HC05.begin(9600);
   pinMode(PUMP_CONTROL, OUTPUT); 
   pinMode(SOIL_MOISURE_INPUT, INPUT); 
-  pinMode(WATER_LEVEL, INPUT);
-  pinMode(WATER_ALERT, OUTPUT);
 }
 
 void loop(){ 
   moisure = analogRead(SOIL_MOISURE_INPUT);  
-  humidity = ((1023 - moisure)/1023.00)*100;
-
-  if(humidity < moisureLimit){
+  percent = ((1023 - moisure)/1023.00)*100;
+  Serial.print("S");
+  Serial.print(percent);
+  Serial.print(" ");
+  if(percent < moisureLimit){
     pumpDueToSchedule();
   }
 
-  wL = analogRead(WATER_LEVEL);
+   wL = analogRead(WATER_LEVEL);
   waterLevel = (wL/660.00)*100;
-  if (waterLevel < 50) {
+  Serial.print("L");
+  Serial.print(waterLevel);
+  Serial.print(" ");
+  if (waterLevel < 20) {
     startAlertWaterLevel();
-    Serial.println(waterLevel);
+    
   } else {
     stopAlertWaterLevel();
   }
-
+  
   if (HC05.available()) {
 
     t = HC05.read();
@@ -53,13 +56,14 @@ void loop(){
     }
 
   }
-
 }
 
 void pumpDueToSchedule() {
   digitalWrite(PUMP_CONTROL, HIGH);
+  Serial.print("P ");
   delay(timeCoef*delayUnit);
   digitalWrite(PUMP_CONTROL, LOW);
+  Serial.print("F ");
 }
 
 void handlingCommand(String c) {
@@ -68,10 +72,18 @@ void handlingCommand(String c) {
     int m = convert(c);
     moisureLimit = m;
     feedbackMoisure();
+    Serial.print("C");
+    Serial.print("SetMoisureThreshold:");
+    Serial.print(moisureLimit);
+    Serial.print(" ");
   } else if (c[0] == 'T') {
     int time = convert(c);
     timeCoef = time;
     feedbackTime();
+    Serial.print("C");
+    Serial.print("SetTimeCoeff:");
+    Serial.print(timeCoef*delayUnit);
+    Serial.print(" ");
   }
     
 }
@@ -87,6 +99,9 @@ void feedbackMoisure() {
   HC05.print("Moisure Limit: ");
   HC05.print(moisureLimit);
   HC05.println("%");
+  Serial.print("M");
+  Serial.print(moisureLimit);
+  Serial.print(" ");
 }
 
 void feedbackTime() {
@@ -94,8 +109,10 @@ void feedbackTime() {
   HC05.print("Time: ");
   HC05.print(timeCoef*delayUnit);
   HC05.println("ms\n");
+  Serial.print("T");
+  Serial.print(timeCoef*delayUnit);
+  Serial.print(" ");
 }
-
 void startAlertWaterLevel() {
   digitalWrite(WATER_ALERT, HIGH);
 }
